@@ -142,12 +142,12 @@ const SettingsScreen = () => {
 
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Version</Text>
-            <Text style={styles.infoValue}>1.0.0</Text>
+            <Text style={styles.infoValue}>1.0.0.8</Text>
           </View>
 
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Build</Text>
-            <Text style={styles.infoValue}>2024.01.15</Text>
+            <Text style={styles.infoValue}>2025.10.31</Text>
           </View>
 
           <TouchableOpacity style={styles.actionButton}>

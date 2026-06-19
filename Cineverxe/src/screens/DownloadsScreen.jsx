@@ -5,24 +5,31 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  FlatList,
   Image,
   Alert,
+  SafeAreaView,
+  StatusBar,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
-const downloadedMovies = [
+const STORAGE_KEY = 'downloadedMovies';
+
+const defaultDownloads = [
   {
+    id: 27205,
     title: "Inception",
     genre: "Sci-Fi",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAMhYLs1YN2xBZDh_TYQTTwxCbplJadJ3jGsY55BQBrnC-vQohNukWDvvIYdCZYC2c2AJ2Bw9_tWOGRhwQobBedHYT53b2vjiMVaKVIHsybkzzNmt-hksW2cRfp2KLpUlQeKBoFILKnuwAhSmjMp6vQ79qBM2RNxNB-Qgr_kZZCFOWjATFA8iZomyEV9bYF8s3qUk4jr7rcE0VrQFBkZhrIPeFkVAJOHIlro008hVPyv6qCFXZwzKpdPIUxunF16elsGSooerzK4JZj",
+    img: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1000",
     size: "2.1 GB",
     downloaded: true,
   },
   {
+    id: 155,
     title: "The Dark Knight",
     genre: "Action",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuCU34HzoIJ0S38SzZLag1rsJ0emqUoe5tInLvpcIKImn9zUaRw3RkSnbiqEGjnLNEItMAmYnurJ2irijli6R0b7e7zAh5-Pl8UCLOAttgYooiEQKgWuBFmy4JHrSyHTyCuWCHhLLPI9Bn05RHWTLcX4AUXhtYJJtrc5rCWJ1oaDmtV0ZHpjQmbGN4UDC5NtNMtMoCyusGYKN4vJV7wCKAwPglIgchwtdFUeXibcPILWrfDho_8ckH2nwq9N-GQAPHn2jTdf4FOwkpGQ",
+    img: "https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?q=80&w=1000",
     size: "1.8 GB",
     downloaded: true,
   },
@@ -30,19 +37,43 @@ const downloadedMovies = [
 
 const downloadingMovies = [
   {
+    id: 164,
     title: "Dune",
     genre: "Adventure",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuD_ACHohIGwbniLiXp6keXFH5kEF-J6BGIwY99kxMFRfVyGDcUGKpjo7fqjBr7ot8LZm_5iIkVDmcLpEnFIxZnfFHVxc0-8IV9tz_FZw7RReD3GiRL_tu5d6WxGqTK6MhL-BLDCzqjASeC8fl0-2hNwkMRX2yEyeNJv9ecuz5wN27WA5XMV6bhI9NVX_xo4kX5rwQ7qq7Ash5TLeWSmiXJO3Zf4WxOo6IqvLk5LAdUQQ_wg2_tsYfpbtYLDYPWlA_qKF4AxJilc2QVe",
+    img: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1000",
     size: "3.2 GB",
     progress: 0.75,
   },
 ];
 
 const DownloadsScreen = () => {
-  const [downloads, setDownloads] = useState(downloadedMovies);
+  const navigation = useNavigation();
+  const [downloads, setDownloads] = useState([]);
   const [downloading, setDownloading] = useState(downloadingMovies);
 
-  const deleteDownload = (movie) => {
+  useFocusEffect(
+    React.useCallback(() => {
+      loadDownloads();
+    }, [])
+  );
+
+  const loadDownloads = async () => {
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+      if (stored !== null) {
+        setDownloads(JSON.parse(stored));
+      } else {
+        // Initialize with default downloads
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(defaultDownloads));
+        setDownloads(defaultDownloads);
+      }
+    } catch (e) {
+      console.error("Error loading downloads:", e);
+    }
+  };
+
+  const deleteDownload = (movie, e) => {
+    e.stopPropagation();
     Alert.alert(
       "Delete Download",
       `Delete "${movie.title}" from downloads?`,
@@ -50,7 +81,15 @@ const DownloadsScreen = () => {
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
-          onPress: () => setDownloads(downloads.filter(item => item.title !== movie.title)),
+          onPress: async () => {
+            const newList = downloads.filter(item => item.title !== movie.title);
+            setDownloads(newList);
+            try {
+              await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
+            } catch (err) {
+              console.error(err);
+            }
+          },
         },
       ]
     );
@@ -58,10 +97,13 @@ const DownloadsScreen = () => {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
       {/* Page Header */}
-      <View style={styles.pageHeader}>
-        <Text style={styles.pageTitle}>Downloads</Text>
-      </View>
+      <SafeAreaView>
+        <View style={styles.pageHeader}>
+          <Text style={styles.pageTitle}>Downloads</Text>
+        </View>
+      </SafeAreaView>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Downloading Section */}
@@ -100,10 +142,14 @@ const DownloadsScreen = () => {
             </View>
           ) : (
             downloads.map((movie, index) => (
-              <View key={index} style={styles.downloadItem}>
+              <TouchableOpacity
+                key={index}
+                style={styles.downloadItem}
+                onPress={() => navigation.navigate('Movie', { id: movie.id, title: movie.title, img: movie.img })}
+              >
                 <Image source={{ uri: movie.img }} style={styles.downloadPoster} />
                 <View style={styles.downloadInfo}>
-                  <Text style={styles.downloadTitle}>{movie.title}</Text>
+                  <Text style={styles.downloadTitle} numberOfLines={1}>{movie.title}</Text>
                   <Text style={styles.downloadGenre}>{movie.genre} • {movie.size}</Text>
                   <TouchableOpacity style={styles.watchButton}>
                     <MaterialIcons name="play-arrow" size={20} color="#fff" />
@@ -112,14 +158,17 @@ const DownloadsScreen = () => {
                 </View>
                 <TouchableOpacity
                   style={styles.deleteButton}
-                  onPress={() => deleteDownload(movie)}
+                  onPress={(e) => deleteDownload(movie, e)}
                 >
                   <MaterialIcons name="delete" size={24} color="#ff6b6b" />
                 </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             ))
           )}
         </View>
+        
+        {/* Bottom padding */}
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
@@ -130,9 +179,7 @@ export default DownloadsScreen;
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#161022" },
   pageHeader: {
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.1)",
-    paddingVertical: 16,
+    paddingVertical: 10,
     paddingHorizontal: 16,
   },
   pageTitle: { color: "#fff", fontSize: 24, fontWeight: "bold" },
@@ -146,7 +193,7 @@ const styles = StyleSheet.create({
     padding: 12,
     alignItems: "center",
   },
-  downloadPoster: { width: 80, height: 120, borderRadius: 6 },
+  downloadPoster: { width: 80, height: 120, borderRadius: 6, resizeMode: "cover" },
   downloadInfo: { flex: 1, marginLeft: 12 },
   downloadTitle: { color: "#fff", fontSize: 16, fontWeight: "bold" },
   downloadGenre: { color: "#bbb", fontSize: 14, marginTop: 2 },

@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  FlatList,
   Image,
   Alert,
   SafeAreaView,
@@ -13,22 +12,27 @@ import {
 } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from "@expo/vector-icons";
-
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 
 const STORAGE_KEY = 'myListMovies';
 
 const MyListScreen = () => {
+  const navigation = useNavigation();
   const [list, setList] = useState([]);
 
-  useEffect(() => {
-    loadMyList();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      loadMyList();
+    }, [])
+  );
 
   const loadMyList = async () => {
     try {
       const storedList = await AsyncStorage.getItem(STORAGE_KEY);
       if (storedList !== null) {
         setList(JSON.parse(storedList));
+      } else {
+        setList([]);
       }
     } catch (error) {
       console.error('Error loading my list:', error);
@@ -43,7 +47,10 @@ const MyListScreen = () => {
     }
   };
 
-  const removeFromList = (movie) => {
+  const removeFromList = (movie, e) => {
+    // Prevent navigation when clicking remove
+    e.stopPropagation();
+    
     Alert.alert(
       "Remove from List",
       `Remove "${movie.title}" from your list?`,
@@ -81,21 +88,21 @@ const MyListScreen = () => {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
       {/* Header */}
-      <View style={styles.header}>
-        <MaterialIcons name="video-library" size={32} color="#fff" />
-        <Text style={styles.headerTitle}>My List</Text>
-        <View style={styles.headerActions}>
-          {list.length > 0 && (
-            <TouchableOpacity style={styles.iconButton} onPress={clearList}>
-              <MaterialIcons name="clear-all" size={26} color="#fff" />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity style={styles.iconButton}>
-            <MaterialIcons name="sort" size={26} color="#fff" />
-          </TouchableOpacity>
+      <SafeAreaView>
+        <View style={styles.header}>
+          <MaterialIcons name="video-library" size={32} color="#fff" />
+          <Text style={styles.headerTitle}>My List</Text>
+          <View style={styles.headerActions}>
+            {list.length > 0 && (
+              <TouchableOpacity style={styles.iconButton} onPress={clearList}>
+                <MaterialIcons name="clear-all" size={26} color="#fff" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-      </View>
+      </SafeAreaView>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {list.length === 0 ? (
@@ -108,20 +115,26 @@ const MyListScreen = () => {
           <View style={styles.listContainer}>
             <Text style={styles.listCount}>{list.length} movie{list.length !== 1 ? 's' : ''} in your list</Text>
             {list.map((movie, index) => (
-              <View key={index} style={styles.listItem}>
+              <TouchableOpacity
+                key={index}
+                style={styles.listItem}
+                onPress={() => navigation.navigate('Movie', { id: movie.id, title: movie.title, img: movie.img })}
+              >
                 <Image source={{ uri: movie.img }} style={styles.listPoster} />
                 <View style={styles.listInfo}>
-                  <Text style={styles.listTitle}>{movie.title}</Text>
-                  <Text style={styles.listGenre}>{movie.genre}</Text>
+                  <View>
+                    <Text style={styles.listTitle} numberOfLines={1}>{movie.title}</Text>
+                    <Text style={styles.listGenre}>{movie.genre}</Text>
+                  </View>
                   <TouchableOpacity
                     style={styles.removeButton}
-                    onPress={() => removeFromList(movie)}
+                    onPress={(e) => removeFromList(movie, e)}
                   >
                     <MaterialIcons name="remove-circle" size={24} color="#ff6b6b" />
                     <Text style={styles.removeText}>Remove</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         )}
@@ -130,11 +143,12 @@ const MyListScreen = () => {
   );
 };
 
+export default MyListScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#161022" },
-  header: { flexDirection: "row", alignItems: "center", padding: 16 },
-  headerTitle: { color: "#fff", fontSize: 22, fontWeight: "bold", flex: 1 },
+  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10 },
+  headerTitle: { color: "#fff", fontSize: 22, fontWeight: "bold", flex: 1, marginLeft: 10 },
   headerActions: { flexDirection: "row" },
   iconButton: { padding: 8 },
   emptyContainer: { flex: 1, justifyContent: "center", alignItems: "center", paddingTop: 100 },
@@ -149,12 +163,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     padding: 12,
   },
-  listPoster: { width: 80, height: 120, borderRadius: 6 },
+  listPoster: { width: 80, height: 120, borderRadius: 6, resizeMode: "cover" },
   listInfo: { flex: 1, marginLeft: 12, justifyContent: "space-between" },
   listTitle: { color: "#fff", fontSize: 16, fontWeight: "bold" },
-  listGenre: { color: "#bbb", fontSize: 14 },
+  listGenre: { color: "#bbb", fontSize: 14, marginTop: 2 },
   removeButton: { flexDirection: "row", alignItems: "center", marginTop: 8 },
   removeText: { color: "#ff6b6b", fontSize: 14, marginLeft: 4 },
 });
-
-export default MyListScreen;

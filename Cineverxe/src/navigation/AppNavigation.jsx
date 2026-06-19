@@ -10,6 +10,7 @@ import DiscoverScreen from '../screens/DiscoverScreen'
 import MyListScreen from '../screens/MyListScreen'
 import DownloadsScreen from '../screens/DownloadsScreen'
 import SettingsScreen from '../screens/SettingsScreen'
+import MovieDetailScreen from '../screens/MovieDetailScreen'
 
 const Tab = createBottomTabNavigator()
 const Stack = createNativeStackNavigator()
@@ -67,6 +68,7 @@ export default function AppNavigation() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Splash" component={SplashScreen} />
             <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen name="Movie" component={MovieDetailScreen} />
         </Stack.Navigator>
     </NavigationContainer>
   )

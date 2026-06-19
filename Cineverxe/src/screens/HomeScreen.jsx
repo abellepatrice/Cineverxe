@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,135 +10,180 @@ import {
   StyleSheet,
   SafeAreaView,
   StatusBar,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import {
+  fetchTrendingMovies,
+  fetchTopRatedMovies,
+  fetchUpcomingMovies,
+  image500,
+  image185,
+} from "../api/tmdb";
 
-const trending = [
-  {
-    title: "The Matrix",
-    genre: "Sci-Fi",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuC5ssxd7Ewd6coJDMig1zvRrNDCCHWlIVPWSX_9Pkb8mRHkzOulX0Hj6ssD-YZ9cUk9o4z-E6YtvHZ6yQXwc1V8PNqY9T90lyIK79Xgk-5ra7K7I1rd_jAzXbU4MbW3jvhkoAT1lAJnEs6bEhccJSOcr2zhFJMQTysoPbhQ-ya7gl3e8zZLFi0SaA6G_5AgX8fgT8K6obX2m5KYZq-6D9e0Ep2lJEnIp1Q_mdeLrL7DMDZcxvSmxjrxY2QQwb8Hd92v6zEs",
-  },
-  {
-    title: "Pulp Fiction",
-    genre: "Crime",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuCU34HzoIJ0S38SzZLag1rsJ0emqUoe5tInLvpcIKImn9zUaRw3RkSnbiqEGjnLNEItMAmYnurJ2irijli6R0b7e7zAh5-Pl8UCLOAttgYooiEQKgWuBFmy4JHrSyHTyCuWCHhLLPI9Bn05RHWTLcX4AUXhtYJJtrc5rCWJ1oaDmtV0ZHpjQmbGN4UDC5NtNMtMoCyusGYKN4vJV7wCKAwPglIgchwtdFUeXibcPILWrfDho_8ckH2nwq9N-GQAPHn2jTdf4FOwkpGQ",
-  },
-  {
-    title: "Fight Club",
-    genre: "Drama",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAMhYLs1YN2xBZDh_TYQTTwxCbplJadJ3jGsY55BQBrnC-vQohNukWDvvIYdCZYC2c2AJ2Bw9_tWOGRhwQobBedHYT53b2vjiMVaKVIHsybkzzNmt-hksW2cRfp2KLpUlQeKBoFILKnuwAhSmjMp6vQ79qBM2RNxNB-Qgr_kZZCFOWjATFA8iZomyEV9bYF8s3qUk4jr7rcE0VrQFBkZhrIPeFkVAJOHIlro008hVPyv6qCFXZwzKpdPIUxunF16elsGSooerzK4JZj",
-  },
-  {
-    title: "John Wick 4",
-    genre: "Action",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuC5ssxd7Ewd6coJDMig1zvRrNDCCHWlIVPWSX_9Pkb8mRHkzOulX0Hj6ssD-YZ9cUk9o4z-E6YtvHZ6yQXwc1V8PNqY9T90lyIK79Xgk-5ra7K7I1rd_jAzXbU4MbW3jvhkoAT1lAJnEs6bEhccJSOcr2zhFJMQTysoPbhQ-ya7gl3e8zZLFi0SaA6G_5AgX8fgT8K6obX2m5KYZq-6D9e0Ep2lJEnIp1Q_mdeLrL7DMDZcxvSmxjrxY2QQwb8Hd92v6zEs",
-  },
-];
-
-const recommended = [
-  {
-    title: "Inception",
-    genre: "Sci-Fi",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuC5ssxd7Ewd6coJDMig1zvRrNDCCHWlIVPWSX_9Pkb8mRHkzOulX0Hj6ssD-YZ9cUk9o4z-E6YtvHZ6yQXwc1V8PNqY9T90lyIK79Xgk-5ra7K7I1rd_jAzXbU4MbW3jvhkoAT1lAJnEs6bEhccJSOcr2zhFJMQTysoPbhQ-ya7gl3e8zZLFi0SaA6G_5AgX8fgT8K6obX2m5KYZq-6D9e0Ep2lJEnIp1Q_mdeLrL7DMDZcxvSmxjrxY2QQwb8Hd92v6zEs",
-  },
-  {
-    title: "The Dark Knight",
-    genre: "Action",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuCU34HzoIJ0S38SzZLag1rsJ0emqUoe5tInLvpcIKImn9zUaRw3RkSnbiqEGjnLNEItMAmYnurJ2irijli6R0b7e7zAh5-Pl8UCLOAttgYooiEQKgWuBFmy4JHrSyHTyCuWCHhLLPI9Bn05RHWTLcX4AUXhtYJJtrc5rCWJ1oaDmtV0ZHpjQmbGN4UDC5NtNMtMoCyusGYKN4vJV7wCKAwPglIgchwtdFUeXibcPILWrfDho_8ckH2nwq9N-GQAPHn2jTdf4FOwkpGQ",
-  },
-  {
-    title: "Parasite",
-    genre: "Thriller",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAMhYLs1YN2xBZDh_TYQTTwxCbplJadJ3jGsY55BQBrnC-vQohNukWDvvIYdCZYC2c2AJ2Bw9_tWOGRhwQobBedHYT53b2vjiMVaKVIHsybkzzNmt-hksW2cRfp2KLpUlQeKBoFILKnuwAhSmjMp6vQ79qBM2RNxNB-Qgr_kZZCFOWjATFA8iZomyEV9bYF8s3qUk4jr7rcE0VrQFBkZhrIPeFkVAJOHIlro008hVPyv6qCFXZwzKpdPIUxunF16elsGSooerzK4JZj",
-  },
-];
-
-const newReleases = [
-  {
-    title: "Damsel",
-    genre: "Adventure",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDqxuU5tVjVo3vSPYyybyzZ1XjRdn1HMPx0Dkrn1xutxC5WKeKj4UOLZnDs2PGy-BvBGDH7vvk5Y27A2uN5vT6giUBTXuLL0LxIQLROcEAnT4LPcmf46-GgkYhO4D0E4PpKff-0nYb4RymI-AyuvkBP8kqmy1Y62Wmyt7pE_20xHj-3ggH1cZ0V6dWxr_x7THjFs4rhylYWGoS2ZxE1B5YvH8g1yK8nF8OSlYdcZj1opgLPGeOTuT5bRwD2Uw4A",
-  },
-  {
-    title: "The Marvels",
-    genre: "Superhero",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDoyf7W4pA53h4Yz6Mhd6DaQx-v8M0RYmcBxuD_5EQZ9sK0gU7rPi4jsVLWJ1Gd6ekE3s5iLfQjWn3SrKMj0E8Fq8im7Abqrx8v95fsZc7O6_rI-FuYQbA4Fz_vrqggOvbv_QxFYhUXFRvq89YDGJHGR1D5iMPcTCYfkk5zvPt5oKZcln48-yTg5auMLzo9dbHH5tZMyce86FoipClKThcRYRtS7ChykxL",
-  },
-  {
-    title: "Rebel Moon",
-    genre: "Sci-Fi",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuBTkJrRt0uvNufZ7iLbWLsE40yIQGthNMw1-U2V_ebOQ2sJztYxvBNNyDLQk_JJw_dDHg6vEZ2ZsK4RuZ0_8ToepbDsgOOfWbLRuDy2XynqGHnQ6MK3PwhrV6ZUtDJle1mQo77vUeAUS4lVQCFo6FZrNoFSqIl6daIehLaAyDhT54FyQlzK-LKRq90irTg35eBFxTFpwhvnR8T7bFELp8",
-  },
-];
+const getGenreName = (genreId) => {
+  const genres = {
+    28: "Action",
+    12: "Adventure",
+    16: "Animation",
+    35: "Comedy",
+    80: "Crime",
+    99: "Documentary",
+    18: "Drama",
+    10751: "Family",
+    14: "Fantasy",
+    36: "History",
+    27: "Horror",
+    10402: "Music",
+    9648: "Mystery",
+    10749: "Romance",
+    878: "Sci-Fi",
+    10770: "TV Movie",
+    53: "Thriller",
+    10752: "War",
+    37: "Western",
+  };
+  return genres[genreId] || "Movie";
+};
 
 const HomeScreen = () => {
+  const navigation = useNavigation();
+  const [trending, setTrending] = useState([]);
+  const [recommended, setRecommended] = useState([]);
+  const [newReleases, setNewReleases] = useState([]);
+  const [heroMovie, setHeroMovie] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadMovies();
+  }, []);
+
+  const loadMovies = async () => {
+    setLoading(true);
+    try {
+      const trendingData = await fetchTrendingMovies();
+      const recommendedData = await fetchTopRatedMovies();
+      const upcomingData = await fetchUpcomingMovies();
+
+      setTrending(trendingData);
+      setRecommended(recommendedData);
+      setNewReleases(upcomingData);
+
+      if (trendingData.length > 0) {
+        // Pick a random movie from trending to show as hero
+        const randomIndex = Math.floor(Math.random() * Math.min(5, trendingData.length));
+        setHeroMovie(trendingData[randomIndex]);
+      }
+    } catch (error) {
+      console.error("Error loading movies for HomeScreen:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#5b13ec" />
+      </View>
+    );
+  }
+
+  const heroBackdrop = heroMovie
+    ? image500(heroMovie.backdrop_path) || image500(heroMovie.poster_path) || heroMovie.img
+    : "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1000";
 
   return (
     <View style={styles.container}>
-
       <SafeAreaView style={{ marginBottom: 3 }}>
-        <StatusBar style="light" />
-        {/* Page Header */}
+        <StatusBar barStyle="light-content" />
         <View style={styles.pageHeader}>
-
-          <Text style={styles.pageTitle}>Home</Text>
+          <Text style={styles.pageTitle}>Cineverxe</Text>
+          <TouchableOpacity 
+            style={styles.searchButton}
+            onPress={() => navigation.navigate("Discover")}
+          >
+            <MaterialIcons name="search" size={28} color="#fff" />
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Hero */}
-        <ImageBackground
-          source={{
-            uri: "https://lh3.googleusercontent.com/aida-public/AB6AXuDLo0zWiDWYwFTV3B6dJLLCJWfm8PLAhgy8j3ZKjx_6YXkvyjkbD7mvCNqoWgiacSOtp870I8Gl1B3DvmK5HneSsaahlNwJnODsHJPoGbsGZyc0wtBNE00QIEew_asSCGot8d_Rnb0_2Wv4GTfuiAfk5P7Jw_44sZ-dYhUmQE9earh6aX_rjTok5PgiA35oU6fyBbm91Yu4L5TmR7PHJyrenxu5BNgur3UhTVfS87L221naMRXyIwYiQe15chsy1nq_JV74n_vJhQnR",
-          }}
-          style={styles.heroImage}
-          imageStyle={{ borderRadius: 16 }}
-        >
-          <View style={styles.heroOverlay}>
-            <Text style={styles.heroTitle}>Interstellar</Text>
-            <Text style={styles.heroText}>
-              When Earth becomes uninhabitable, a former pilot must lead a team
-              through a wormhole to save humanity.
-            </Text>
-            <TouchableOpacity style={styles.watchBtn}>
-              <MaterialIcons name="play-arrow" size={24} color="#fff" />
-              <Text style={styles.watchText}>Watch Now</Text>
-            </TouchableOpacity>
-          </View>
-        </ImageBackground>
+        {heroMovie && (
+          <ImageBackground
+            source={{ uri: heroBackdrop }}
+            style={styles.heroImage}
+            imageStyle={{ borderRadius: 16 }}
+          >
+            <View style={styles.heroOverlay}>
+              <Text style={styles.heroTitle}>{heroMovie.title}</Text>
+              <Text style={styles.heroText} numberOfLines={2}>
+                {heroMovie.overview || "Explore this cinema universe."}
+              </Text>
+              <TouchableOpacity
+                style={styles.watchBtn}
+                onPress={() =>
+                  navigation.navigate("Movie", {
+                    id: heroMovie.id,
+                    title: heroMovie.title,
+                    img: image500(heroMovie.poster_path) || heroMovie.img,
+                  })
+                }
+              >
+                <MaterialIcons name="play-arrow" size={24} color="#fff" />
+                <Text style={styles.watchText}>Watch Now</Text>
+              </TouchableOpacity>
+            </View>
+          </ImageBackground>
+        )}
 
         {/* Trending Now */}
-        <MovieSection title="Trending Now" data={trending} />
+        <MovieSection title="Trending Now" data={trending} navigation={navigation} />
         {/* Recommended */}
-        <MovieSection title="Recommended For You" data={recommended} />
+        <MovieSection title="Recommended For You" data={recommended} navigation={navigation} />
         {/* New Releases */}
-        <MovieSection title="New Releases" data={newReleases} />
+        <MovieSection title="New Releases" data={newReleases} navigation={navigation} />
+        
+        {/* Extra bottom padding */}
+        <View style={{ height: 30 }} />
       </ScrollView>
     </View>
   );
 };
 
-const MovieSection = ({ title, data }) => {
-
+const MovieSection = ({ title, data, navigation }) => {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{title}</Text>
-        <Text style={styles.link}>See All</Text>
       </View>
       <FlatList
         horizontal
         data={data}
-        keyExtractor={(item) => item.title}
+        keyExtractor={(item, index) => index.toString()}
         showsHorizontalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Image source={{ uri: item.img }} style={styles.poster} />
-            <Text style={styles.movieTitle}>{item.title}</Text>
-            <Text style={styles.movieGenre}>{item.genre}</Text>
-          </View>
-        )}
+        renderItem={({ item }) => {
+          const posterUrl = image185(item.poster_path) || item.img || "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=200";
+          const genreName = item.genre_ids ? getGenreName(item.genre_ids[0]) : (item.genre || "Movie");
+          return (
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() =>
+                navigation.navigate("Movie", {
+                  id: item.id,
+                  title: item.title,
+                  img: image500(item.poster_path) || posterUrl,
+                })
+              }
+            >
+              <Image source={{ uri: posterUrl }} style={styles.poster} />
+              <Text style={styles.movieTitle} numberOfLines={1}>{item.title}</Text>
+              <Text style={styles.movieGenre}>{genreName}</Text>
+            </TouchableOpacity>
+          );
+        }}
       />
     </View>
   );
@@ -146,20 +191,26 @@ const MovieSection = ({ title, data }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#161022" },
-  header: { flexDirection: "row", alignItems: "center", padding: 16 },
-  headerTitle: { color: "#fff", fontSize: 22, fontWeight: "bold", flex: 1 },
-  headerIcons: { flexDirection: "row", gap: 8 },
-  iconButton: { padding: 8 },
-  heroImage: { height: 380, marginHorizontal: 16, marginTop: 8 },
+  loadingContainer: { flex: 1, backgroundColor: "#161022", justifyContent: "center", alignItems: "center" },
+  pageHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  pageTitle: { color: "#fff", fontSize: 24, fontWeight: "bold" },
+  searchButton: { padding: 4 },
+  heroImage: { height: 350, marginHorizontal: 16, marginTop: 8 },
   heroOverlay: {
     flex: 1,
     justifyContent: "flex-end",
     padding: 20,
-    backgroundColor: "rgba(22,16,34,0.45)",
+    backgroundColor: "rgba(22,16,34,0.55)",
     borderRadius: 16,
   },
-  heroTitle: { fontSize: 28, fontWeight: "bold", color: "#fff" },
-  heroText: { color: "#ddd", fontSize: 14, marginTop: 4 },
+  heroTitle: { fontSize: 26, fontWeight: "bold", color: "#fff" },
+  heroText: { color: "#ddd", fontSize: 13, marginTop: 4, lineHeight: 18 },
   watchBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -168,6 +219,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     marginTop: 12,
+    alignSelf: "flex-start",
   },
   watchText: { color: "#fff", fontWeight: "bold", marginLeft: 6 },
   section: { marginTop: 20 },
@@ -175,14 +227,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 16,
+    marginBottom: 10,
   },
   sectionTitle: { color: "#fff", fontWeight: "bold", fontSize: 18 },
-  link: { color: "#5b13ec", fontWeight: "600" },
   card: { marginHorizontal: 8, width: 120 },
-  poster: { width: "100%", height: 180, borderRadius: 8 },
-  movieTitle: { color: "#fff", fontWeight: "500", marginTop: 6 },
-  movieGenre: { color: "#bbb", fontSize: 12 },
+  poster: { width: "100%", height: 180, borderRadius: 8, resizeMode: "cover" },
+  movieTitle: { color: "#fff", fontWeight: "500", marginTop: 6, fontSize: 13 },
+  movieGenre: { color: "#bbb", fontSize: 11 },
 });
 
 export default HomeScreen;
-
